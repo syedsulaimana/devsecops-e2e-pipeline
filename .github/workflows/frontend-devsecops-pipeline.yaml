@@ -77,6 +77,10 @@ jobs:
     steps:
       - name: Checkout frontend code
         uses: actions/checkout@v4
+      - name: Debug OIDC claims
+        uses: steve-todorov/oidc-debugger-action@v1
+        with:
+          audience: '${{ github.server_url }}/${{ github.repository }}'
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
