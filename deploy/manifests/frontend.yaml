@@ -4,22 +4,62 @@ kind: Deployment
 metadata:
   name: frontend
   namespace: jerney
+  labels:
+    app.kubernetes.io/name: jerney-frontend
+    app.kubernetes.io/part-of: jerney
+    app.kubernetes.io/component: frontend
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: frontend
+      app.kubernetes.io/name: jerney-frontend
+      app.kubernetes.io/part-of: jerney
+      app.kubernetes.io/component: frontend
   template:
     metadata:
       labels:
-        app: frontend
+        app.kubernetes.io/name: jerney-frontend
+        app.kubernetes.io/part-of: jerney
+        app.kubernetes.io/component: frontend
     spec:
+      automountServiceAccountToken: false
       containers:
       - name: frontend
         image: your-frontend-image:latest
         ports:
-        - containerPort: 80
-      restartPolicy: Always
+        - containerPort: 8080
+          protocol: TCP
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
 
 ---
 
@@ -30,9 +70,11 @@ metadata:
   namespace: jerney
 spec:
   selector:
-    app: frontend
+    app.kubernetes.io/name: jerney-frontend
+    app.kubernetes.io/part-of: jerney
+    app.kubernetes.io/component: frontend
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 80
-  type: ClusterIP
+      targetPort: 8080
+  type: NodePort
