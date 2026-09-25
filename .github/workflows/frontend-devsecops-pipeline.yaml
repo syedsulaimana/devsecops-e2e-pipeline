@@ -8,6 +8,9 @@ on:
       paths:
         - 'frontend/**'
         - '.github/workflows/frontend-devsecops-pipeline.yaml'
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   set-environment:
