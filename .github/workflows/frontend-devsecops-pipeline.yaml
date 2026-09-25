@@ -74,7 +74,7 @@ jobs:
       - name: Checkout frontend code
         uses: actions/checkout@v4
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: "arn:aws:iam::829007908826:role/gha-syedsulaimana-org-pipeline-role"
           role-session-name: github-actions-session
