@@ -70,6 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - set-environment
+    environment: ${{ needs.set-environment.outputs.target_env }}
     steps:
       - name: Checkout frontend code
         uses: actions/checkout@v4
@@ -78,7 +79,7 @@ jobs:
         with:
           role-to-assume: "arn:aws:iam::829007908826:role/gha-syedsulaimana-org-pipeline-role"
           role-session-name: github-actions-session
-          aws-region: ${{ needs.set-environment.outputs.target_env }}
+          aws-region: ${{ vars.AWS_REGION }}
       - name: Call AWS STS Get Caller Identity
         run: aws sts get-caller-identity
 
