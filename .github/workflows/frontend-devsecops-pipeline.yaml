@@ -127,8 +127,8 @@ jobs:
         uses: notaryproject/notation-action/sign@v1
         with:
           plugin_name: com.amazonaws.signer.notation.plugin
-          plugin_url: https://d2hvyiie56hcat.cloudfront.net/linux/amd64/installer/deb/latest/aws-signer-notation-cli_amd64.deb
-          plugin_checksum: 0bafab20eb047fd757897cd22ca77554b5f212c32cbbafa4321d4bc072d515f0
+          plugin_url: https://d2hvyiie56hcat.cloudfront.net/linux/amd64/plugin/latest/notation-aws-signer-plugin.zip
+          plugin_checksum: f8efa548932edc4851f4ba464496994bad753cdf21cd32baa575f7291a26c7b9
           key_id: arn:aws:signer:ap-south-1:829007908826:/signing-profiles/sp_ecr_devsecops_gha
           target_artifact_reference: |-
             ${{ steps.image.outputs.ref }}
