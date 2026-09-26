@@ -108,7 +108,7 @@ jobs:
         shell: bash
         run: |
           digest="$(aws ecr describe-images \
-            --repository-name jerney-frontend \
+            --repository-name devsecops/jerney-frontend \
             --image-ids imageTag="${GITHUB_SHA}" \
             --query 'imageDetails[0].imageDigest' \
             --output text)"
