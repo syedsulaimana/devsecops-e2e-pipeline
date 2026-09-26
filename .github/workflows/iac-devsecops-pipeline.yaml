@@ -15,9 +15,6 @@ jobs:
         runs-on: ubuntu-latest
         outputs:
             target-env: ${{ steps.setting-environment.outputs.TARGET_ENV }}
-        defaults:
-            run:
-                working-directory: ./deploy/iac
         steps:
             - name: Setting up environment
               id: setting-environment
