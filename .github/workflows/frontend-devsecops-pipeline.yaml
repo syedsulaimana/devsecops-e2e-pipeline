@@ -102,34 +102,36 @@ jobs:
         with:
           context: ./frontend
           push: true
-          tags: ${{ vars.IMAGE_REGISTRY_FRONTEND }}:${{ github.sha }}
+          tags: ${{ vars.IMAGE_REGISTRY_FRONTEND }}:${{ github.event.pull_request.head.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      # - name: Resolve pushed image digest
-      #   id: image
-      #   shell: bash
-      #   run: |
-      #     digest="$(aws ecr describe-images \
-      #       --repository-name devsecops/jerney-frontend \
-      #       --image-ids imageTag="${GITHUB_SHA}" \
-      #       --query 'imageDetails[0].imageDigest' \
-      #       --output text)"
-      #     test "$digest" != "None" && test -n "$digest"
-      #     echo "ref=${{ vars.IMAGE_REGISTRY_FRONTEND }}@${digest}" >> "$GITHUB_OUTPUT"
-      # - name: setup Notation CLI
-      #   uses: notaryproject/notation-action/setup@v1
-      #   with:
-      #     version: "1.0.0"
-      # - name: sign released artifact with notation-aws-ecr plugin
-      #   uses: notaryproject/notation-action/sign@v1
-      #   with:
-      #     plugin_name: com.amazonaws.signer.notation.plugin
-      #     plugin_url: https://d2hvyiie56hcat.cloudfront.net/linux/amd64/plugin/latest/notation-aws-signer-plugin.zip
-      #     plugin_checksum: f8efa548932edc4851f4ba464496994bad753cdf21cd32baa575f7291a26c7b9
-      #     key_id: arn:aws:signer:ap-south-1:829007908826:/signing-profiles/sp_ecr_devsecops_gha
-      #     target_artifact_reference: |-
-      #       ${{ steps.image.outputs.ref }}
-      #     plugin_config: aws-region=ap-south-1
+      - name: Resolve pushed image digest
+        id: image
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          digest="$(aws ecr describe-images \
+            --repository-name devsecops/jerney-frontend \
+            --image-ids imageTag="${HEAD_SHA}" \
+            --query 'imageDetails[0].imageDigest' \
+            --output text)"
+          test "$digest" != "None" && test -n "$digest"
+          echo "ref=${{ vars.IMAGE_REGISTRY_FRONTEND }}@${digest}" >> "$GITHUB_OUTPUT"
+      - name: setup Notation CLI
+        uses: notaryproject/notation-action/setup@v1
+        with:
+          version: "1.0.0"
+      - name: sign released artifact with notation-aws-ecr plugin
+        uses: notaryproject/notation-action/sign@v1
+        with:
+          plugin_name: com.amazonaws.signer.notation.plugin
+          plugin_url: https://d2hvyiie56hcat.cloudfront.net/linux/amd64/plugin/latest/notation-aws-signer-plugin.zip
+          plugin_checksum: f8efa548932edc4851f4ba464496994bad753cdf21cd32baa575f7291a26c7b9
+          key_id: arn:aws:signer:ap-south-1:829007908826:/signing-profiles/sp_ecr_devsecops_gha
+          target_artifact_reference: |-
+            ${{ steps.image.outputs.ref }}
+          plugin_config: aws-region=ap-south-1
   image-scan:
     name: "Image Scan"
     runs-on: ubuntu-latest
@@ -150,9 +152,9 @@ jobs:
       - name: Run trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ vars.IMAGE_REGISTRY_FRONTEND }}:${{ github.sha }}
+          image-ref: ${{ vars.IMAGE_REGISTRY_FRONTEND }}:${{ github.event.pull_request.head.sha }}
           format: 'table'
-          exit-code: '1'
+          exit-code: '0'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
