@@ -1,5 +1,5 @@
 name: frontend-devsecops-pipeline
-run-name: frontend-devsecops-pipeline
+run-name: "frontend-devsecops-pipeline-pr: ${{ github.event.pull_request.number }}"
 on:
     pull_request:
       types: [opened, synchronize, reopened]
