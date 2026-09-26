@@ -117,8 +117,8 @@ jobs:
       - name: setup Notation CLI
         uses: notaryproject/notation-action/setup@v1
         with:
-          version: "1.3.2"
-      - name: sign releasd artifact with notation-aws-ecr plugin
+          version: "1.2.2"
+      - name: sign released artifact with notation-aws-ecr plugin
         uses: notaryproject/notation-action/sign@v1
         with:
           plugin_name: com.amazonaws.signer.notation.plugin
