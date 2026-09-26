@@ -101,7 +101,7 @@ jobs:
       - name: Build, tag and push to AWS ECR
         run: |
           IMAGE_URI="${{ vars.IMAGE_REGISTRY_FRONTEND }}:${{ github.sha }}"
-          docker build -t $IMAGE_URI ./frontend
+          docker build -t $IMAGE_URI .
           docker push $IMAGE_URI
       - name: Resolve pushed image digest
         id: image
