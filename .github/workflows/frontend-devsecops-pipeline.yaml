@@ -35,6 +35,8 @@ jobs:
     name: "Lint Code"
     runs-on: ubuntu-latest
     continue-on-error: true
+    needs:
+      - set-environment
     steps:
       - name: Checkout frontend code
         uses: actions/checkout@v4
@@ -48,9 +50,10 @@ jobs:
         run: npm run lint
 
   sca:
-    name: "Software Composition Analysis - Dependency Audit"
+    name: "SCA - Dependency Audit"
     runs-on: ubuntu-latest
-    needs: lint
+    needs:
+      - lint
     defaults:
       run:
         working-directory: ./frontend
@@ -68,49 +71,60 @@ jobs:
       - name: Run dependency audit
         run: npm audit --audit-length=high || true
 
-  aws-assume-role-and-call-identity:
-    name: "Assume AWS Role and Call Identity"
+  build-and-push-to-aws-ecr:
+    name: "Build and Push to AWS ECR"
     runs-on: ubuntu-latest
     needs:
       - set-environment
+      - lint
+      - sca
     environment: ${{ needs.set-environment.outputs.target_env }}
+    defaults:
+      run:
+        working-directory: ./frontend
     steps:
       - name: Checkout frontend code
         uses: actions/checkout@v4
-      - name: Debug OIDC claims
-        uses: steve-todorov/oidc-debugger-action@v1
-        with:
-          audience: '${{ github.server_url }}/${{ github.repository }}'
+      # - name: Debug OIDC claims
+      #   uses: steve-todorov/oidc-debugger-action@v1
+      #   with:
+      #     audience: '${{ github.server_url }}/${{ github.repository }}'
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: "arn:aws:iam::829007908826:role/gha-syedsulaimana-org-pipeline-role"
           role-session-name: github-actions-session
           aws-region: ${{ vars.AWS_REGION }}
-      - name: Call AWS STS Get Caller Identity
-        run: aws sts get-caller-identity
-
-  # build:
-  #   name: "Docker Build Frontend"
-  #   runs-on: ubuntu-latest
-  #   needs:
-  #     - sca
-  #     - set-environment
-  #   defaults:
-  #     run:
-  #       working-directory: ./frontend
-  #   environment:
-  #     name: ${{ needs.set-environment.outputs.target_env }}
-  #   steps:
-  #     - name: Checkout frontend code
-  #       uses: actions/checkout@v4
-  #     - name: Set up Node.js
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: '20.x'
-  #         cache: "npm"
-  #         cache-dependency-path: 'frontend/package-lock.json'
-  #     - name: Install dependencies
-  #       run: npm ci
-  #     - name: Build frontend
-  #       run: npm run build
+      - name: Login to AWS ECR
+        id: login-to-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build, tag and push to AWS ECR
+        run: |
+          IMAGE_URI="${{ vars.IMAGE_REGISTRY_FRONTEND }}:${{ github.sha }}"
+          docker build -t $IMAGE_URI ./frontend
+          docker push $IMAGE_URI
+      - name: Resolve pushed image digest
+        id: image
+        shell: bash
+        run: |
+          digest="$(aws ecr describe-images \
+            --repository-name my-repo \
+            --image-ids imageTag="${GITHUB_SHA}" \
+            --query 'imageDetails[0].imageDigest' \
+            --output text)"
+          test "$digest" != "None" && test -n "$digest"
+          echo "ref=${{ vars.IMAGE_REGISTRY_FRONTEND }}@${digest}" >> "$GITHUB_OUTPUT"
+      - name: setup Notation CLI
+        uses: notaryproject/notation-action/setup@v1
+        with:
+          version: "1.3.2"
+      - name: sign releasd artifact with notation-aws-ecr plugin
+        uses: notaryproject/notation-action/sign@v1
+        with:
+          plugin_name: com.amazonaws.signer.notation.plugin
+          plugin_url: https://d2hvyiie56hcat.cloudfront.net/linux/amd64/installer/deb/latest/aws-signer-notation-cli_amd64.deb
+          plugin_checksum: 0bafab20eb047fd757897cd22ca77554b5f212c32cbbafa4321d4bc072d515f0
+          key_id: arn:aws:signer:ap-south-1:829007908826:/signing-profiles/sp_ecr_devsecops_gha
+          target_artifact_reference: |-
+            ${{ steps.image.outputs.ref }}
+          plugin_config: aws-region=ap-south-1
