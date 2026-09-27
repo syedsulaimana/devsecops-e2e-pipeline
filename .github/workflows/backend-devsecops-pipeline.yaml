@@ -183,6 +183,8 @@ jobs:
             role-to-assume: "arn:aws:iam::829007908826:role/gha-syedsulaimana-org-pipeline-role"
             role-session-name: github-actions-session
             aws-region: ${{ vars.AWS_REGION }}
+        - name: Login to AWS ECR
+          uses: aws-actions/amazon-ecr-login@v2
         - name: Create SBOM Report
           uses: aquasecurity/trivy-action@master
           with:
