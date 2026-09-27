@@ -8,6 +8,9 @@ on:
       paths:
         - 'backend/**'
         - '.github/workflows/backend-devsecops-pipeline.yaml'
+permissions:
+  contents: read
+  id-token: write
 jobs:
   set-environment:
     name: "Setting Environment"
