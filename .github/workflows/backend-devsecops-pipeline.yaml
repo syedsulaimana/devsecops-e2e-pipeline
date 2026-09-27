@@ -173,6 +173,7 @@ jobs:
     defaults:
       run:
         working-directory: ./backend
+    environment: ${{ needs.set-environment.outputs.target_env }}
     steps:
         - name: Checkout backend code
           uses: actions/checkout@v4
@@ -182,6 +183,8 @@ jobs:
             role-to-assume: "arn:aws:iam::829007908826:role/gha-syedsulaimana-org-pipeline-role"
             role-session-name: github-actions-session
             aws-region: ${{ vars.AWS_REGION }}
+        - name: Login to AWS ECR
+          uses: aws-actions/amazon-ecr-login@v2
         - name: Create SBOM Report
           uses: aquasecurity/trivy-action@master
           with:
@@ -211,24 +214,24 @@ jobs:
         - name: Sign the backend image
           run: |
             cosign sign \
-              --key arn:aws:kms:ap-south-1:829007908826:key/83b623d3-8ce0-4bed-b4d3-66343d1ccb15 \
+              --key awskms:///arn:aws:kms:ap-south-1:829007908826:key/83b623d3-8ce0-4bed-b4d3-66343d1ccb15 \
               ${{ needs.build-and-push-to-aws-ecr.outputs.image_digest }}
         - name: Attest the backend image's SBOM
           run: |
             cosign attest \
-              --key arn:aws:kms:ap-south-1:829007908826:key/83b623d3-8ce0-4bed-b4d3-66343d1ccb15 \
-              --predicate backend/sbom.json \
+              --key awskms:///arn:aws:kms:ap-south-1:829007908826:key/83b623d3-8ce0-4bed-b4d3-66343d1ccb15 \
+              --predicate sbom.json \
               --type spdxjson \
               ${{ needs.build-and-push-to-aws-ecr.outputs.image_digest }}
         - name: Attest the backend image's Vulnerability Scan report
           run: |
             cosign attest \
-              --key arn:aws:kms:ap-south-1:829007908826:key/83b623d3-8ce0-4bed-b4d3-66343d1ccb15 \
-              --predicate backend/vulnerability.json \
+              --key awskms:///arn:aws:kms:ap-south-1:829007908826:key/83b623d3-8ce0-4bed-b4d3-66343d1ccb15 \
+              --predicate vulnerability.json \
               --type vuln \
               ${{ needs.build-and-push-to-aws-ecr.outputs.image_digest }}
         - name: Verify the backend image signature
           run: |
             cosign verify \
-              --key arn:aws:kms:ap-south-1:829007908826:key/83b623d3-8ce0-4bed-b4d3-66343d1ccb15 \
+              --key awskms:///arn:aws:kms:ap-south-1:829007908826:key/83b623d3-8ce0-4bed-b4d3-66343d1ccb15 \
               ${{ needs.build-and-push-to-aws-ecr.outputs.image_digest }}
