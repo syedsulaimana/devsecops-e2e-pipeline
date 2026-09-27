@@ -173,6 +173,7 @@ jobs:
     defaults:
       run:
         working-directory: ./backend
+    environment: ${{ needs.set-environment.outputs.target_env }}
     steps:
         - name: Checkout backend code
           uses: actions/checkout@v4
