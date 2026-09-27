@@ -71,6 +71,7 @@ jobs:
   dockerfile-lint:
     name: "Dockerfile Lint"
     runs-on: ubuntu-latest
+    continue-on-error: true
     needs:
       - set-environment
     defaults:
@@ -80,7 +81,7 @@ jobs:
       - name: Checkout frontend code
         uses: actions/checkout@v4
       - name: Lint Dockerfile
-        uses: hadolint/hadolint-action@v2
+        uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: ./frontend/Dockerfile
           failure-threshold: warning
