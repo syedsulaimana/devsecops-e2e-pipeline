@@ -1,0 +1,26 @@
+name: k8s-devsecops-pipeline
+run-name: "k8s-devsecops-pipeline-pr: ${{ github.event.pull_request.number }}"
+on:
+    pull_request:
+      types: [opened, synchronize, reopened]
+      branches:
+        - main
+      paths:
+        - 'deploy/manifests/**'
+        - '.github/workflows/k8s-devsecops-pipeline.yaml'
+jobs:
+  k8s-devsecops:
+    defaults:
+      run:
+        working-directory: ./deploy/manifests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run Checkov on Kubernetes manifests
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: deploy/manifests/
+          framework: kubernetes
+          soft_fail: true  # Soft fail for K8s (some checks may not apply)
+          output_format: cli
