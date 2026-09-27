@@ -1,0 +1,125 @@
+name: IAC DevSecOps Pipeline
+run-name: "iac-devsecops-pipeline-pr: ${{ github.event.pull_request.number }}"
+on:
+    pull_request:
+        types: [opened, synchronize, reopened]
+        branches:
+            - main
+        paths:
+            - 'deploy/iac/**'
+            - '.github/workflows/iac-devsecops-pipeline.yaml'
+permissions:
+    actions: write
+    contents: read
+    id-token: write
+env:
+    TF_PLAN_FILE: tfplan
+jobs:
+    setup-environment:
+        runs-on: ubuntu-latest
+        outputs:
+            target-env: ${{ steps.setting-environment.outputs.TARGET_ENV }}
+        steps:
+            - name: Setting up environment
+              id: setting-environment
+              run: |
+                if [[ ${{ github.event_name }} == 'pull_request' ]]; then
+                    echo "TARGET_ENV=iac-dev" >> $GITHUB_OUTPUT
+                else
+                    echo "TARGET_ENV=iac-prod" >> $GITHUB_OUTPUT
+                fi
+    iac-scan:
+        runs-on: ubuntu-latest
+        needs:
+            - setup-environment
+        outputs:
+            target-env: ${{ needs.setup-environment.outputs.target-env }}
+        defaults:
+            run:
+                working-directory: ./deploy/iac
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+            - name: Run Checkov on Terraform
+              uses: bridgecrewio/checkov-action@v12
+              continue-on-error: true
+              with:
+                directory: ./deploy/iac
+                framework: terraform
+                soft_fail: false
+                skip_check: CKV_AWS_39,CKV_AWS_40,CKV_AWS_58
+                output_format: cli
+    iac-plan:
+        runs-on: ubuntu-latest
+        needs:
+            - setup-environment
+        outputs:
+            plan-artifact-id: ${{ steps.upload-plan.outputs.artifact-id }}
+        defaults:
+            run:
+                working-directory: ./deploy/iac
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v6
+              with:
+                role-to-assume: "arn:aws:iam::829007908826:role/gha-syedsulaimana-org-pipeline-role"
+                role-session-name: github-actions-session
+                aws-region: ap-south-1
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v4
+              with:
+                    terraform_version: "1.14.6"
+            - name: Terraform init and plan
+              run: |
+                terraform init
+                terraform plan -out="${TF_PLAN_FILE}"
+            - name: Upload Terraform plan artifact
+              id: upload-plan
+              uses: actions/upload-artifact@v4
+              with:
+                name: terraform-plan
+                path: ./deploy/iac/${{ env.TF_PLAN_FILE }}
+                if-no-files-found: error
+    iac-apply:
+        runs-on: ubuntu-latest
+        needs:
+            - setup-environment
+            - iac-scan
+            - iac-plan
+        defaults:
+            run:
+                working-directory: ./deploy/iac
+        environment: ${{ needs.setup-environment.outputs.target-env }}
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v6
+              with:
+                role-to-assume: "arn:aws:iam::829007908826:role/gha-syedsulaimana-org-pipeline-role"
+                role-session-name: github-actions-session
+                aws-region: ${{ vars.AWS_REGION }}
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v4
+              with:
+                    terraform_version: "1.14.6"
+            - name: Download Terraform plan artifact
+              uses: actions/download-artifact@v4
+              with:
+                name: terraform-plan
+                path: ./deploy/iac
+            - name: Delete Terraform plan artifact
+              uses: actions/github-script@v7
+              with:
+                script: |
+                  await github.rest.actions.deleteArtifact({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    artifact_id: Number('${{ needs.iac-plan.outputs.plan-artifact-id }}')
+                  })
+            - name: Run Terraform apply
+              run: |
+                terraform init
+                terraform apply --auto-approve "${TF_PLAN_FILE}"
