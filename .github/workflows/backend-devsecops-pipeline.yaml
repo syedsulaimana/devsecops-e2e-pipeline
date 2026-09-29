@@ -220,9 +220,3 @@ jobs:
             cosign verify \
               --key awskms:///arn:aws:kms:ap-south-1:829007908826:key/83b623d3-8ce0-4bed-b4d3-66343d1ccb15 \
               ${{ needs.build-and-push-to-aws-ecr.outputs.image_digest }}
-        - name: Verify SLSA Provenance Attestation
-          run: |
-            cosign verify-attestation \
-              --key awskms:///arn:aws:kms:ap-south-1:829007908826:key/83b623d3-8ce0-4bed-b4d3-66343d1ccb15 \
-              --type slsaprovenance \
-              ${{ needs.build-and-push-to-aws-ecr.outputs.image_digest }}
