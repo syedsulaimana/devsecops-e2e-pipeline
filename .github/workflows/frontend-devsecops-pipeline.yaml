@@ -15,7 +15,8 @@ permissions:
 jobs:
   set-environment:
     name: "Setting Environment"
-    runs-on: ubuntu-latest
+    runs-on:
+    - arc-runner-set-dind
     outputs:
       target_env: ${{ steps.set-env.outputs.TARGET_ENV }}
     steps:
@@ -32,7 +33,8 @@ jobs:
       run:
         working-directory: ./frontend
     name: "Lint Code"
-    runs-on: ubuntu-latest
+    runs-on:
+    - arc-runner-set-dind
     continue-on-error: true
     needs:
       - set-environment
@@ -49,7 +51,8 @@ jobs:
         run: npm run lint
   sca:
     name: "SCA - Dependency Audit"
-    runs-on: ubuntu-latest
+    runs-on:
+    - arc-runner-set-dind
     needs:
       - lint
     defaults:
@@ -70,7 +73,8 @@ jobs:
         run: npm audit --audit-length=high || true
   dockerfile-lint:
     name: "Dockerfile Lint"
-    runs-on: ubuntu-latest
+    runs-on:
+    - arc-runner-set-dind
     continue-on-error: true
     needs:
       - set-environment
@@ -87,7 +91,8 @@ jobs:
           failure-threshold: warning
   build-and-push-to-aws-ecr:
     name: "Build and Push to AWS ECR"
-    runs-on: ubuntu-latest
+    runs-on:
+    - arc-runner-set-dind
     needs:
       - set-environment
       - dockerfile-lint
@@ -152,7 +157,8 @@ jobs:
           plugin_config: aws-region=ap-south-1
   image-scan:
     name: "Image Scan"
-    runs-on: ubuntu-latest
+    runs-on:
+    - arc-runner-set-dind
     needs:
       - set-environment
       - build-and-push-to-aws-ecr
