@@ -34,7 +34,6 @@ jobs:
         working-directory: ./frontend
     name: "Lint Code"
     runs-on:
-    - self-hosted
     - arc-runner-set-dind
     continue-on-error: true
     needs:
@@ -53,7 +52,6 @@ jobs:
   sca:
     name: "SCA - Dependency Audit"
     runs-on:
-    - self-hosted
     - arc-runner-set-dind
     needs:
       - lint
@@ -76,7 +74,6 @@ jobs:
   dockerfile-lint:
     name: "Dockerfile Lint"
     runs-on:
-    - self-hosted
     - arc-runner-set-dind
     continue-on-error: true
     needs:
@@ -95,7 +92,6 @@ jobs:
   build-and-push-to-aws-ecr:
     name: "Build and Push to AWS ECR"
     runs-on:
-    - self-hosted
     - arc-runner-set-dind
     needs:
       - set-environment
@@ -162,7 +158,6 @@ jobs:
   image-scan:
     name: "Image Scan"
     runs-on:
-    - self-hosted
     - arc-runner-set-dind
     needs:
       - set-environment
