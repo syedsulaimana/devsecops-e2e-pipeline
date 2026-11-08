@@ -16,7 +16,6 @@ jobs:
   set-environment:
     name: "Setting Environment"
     runs-on:
-    - self-hosted
     - arc-runner-set-dind
     outputs:
       target_env: ${{ steps.set-env.outputs.TARGET_ENV }}
